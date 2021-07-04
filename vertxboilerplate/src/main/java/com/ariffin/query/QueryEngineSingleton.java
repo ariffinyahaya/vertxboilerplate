@@ -1,7 +1,6 @@
 package com.ariffin.query;
 
 import com.ariffin.core.VxSqlite;
-import com.ariffin.enums.ConditionsEnum;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;

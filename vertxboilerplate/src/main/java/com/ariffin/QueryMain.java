@@ -74,6 +74,10 @@ public class QueryMain extends VxMain {
         ConfigRetrieverOptions configRetrieverOptions = new ConfigRetrieverOptions().addStore(ebConfigStore);
         ConfigRetriever retriever = ConfigRetriever.create(vertx, configRetrieverOptions);
 
+        // YOU CAN DO A PARAM CHECK TO RUN A SPECIFIC VERTICLE SO THAT ONLY
+        // CERTAIN MACHINES RUN SPECIFIC VERTICLES.
+
+
         // Scale the api server verticles on cores: create cpu # of instances during the deployment
         LOGGER.info("Deploying API...");
         DeploymentOptions deploymentOptions = new DeploymentOptions()
