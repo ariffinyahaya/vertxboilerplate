@@ -1,5 +1,6 @@
 package com.ariffin.core;
 
+import com.google.common.cache.CacheBuilder;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -8,14 +9,12 @@ import io.vertx.jdbcclient.JDBCPool;
 import io.vertx.sqlclient.PoolOptions;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
-import org.apache.commons.collections4.map.LRUMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 
 import static java.lang.System.exit;
 
@@ -24,10 +23,11 @@ import static java.lang.System.exit;
 public class VxSqlite {
     protected Vertx vertx = null;
     protected Logger LOGGER = LogManager.getLogger(this.getClass().getName());
-    boolean poolOpen = false;
-    String dbName = "none";
-    JDBCPool pool = null;
-    protected static Map<String,RowSet<Row>> cache = null;
+    protected boolean poolOpen = false;
+    protected String dbName = "none";
+    protected JDBCPool pool = null;
+    protected int cacheSize = 1024; // entries
+    protected static ConcurrentMap<String,RowSet<Row>> cache = null;
 
     public VxSqlite(Vertx vertx, String sqliteDbName, int poolSize)  {
         LOGGER = LogManager.getLogger(this.getClass().getName());
@@ -67,7 +67,9 @@ public class VxSqlite {
                     new PoolOptions()
                             .setMaxSize(poolSize)
             );
-            cache = Collections.synchronizedMap(new LRUMap(4096));
+            cache = CacheBuilder.newBuilder()
+                            .maximumSize(cacheSize)
+                            .<String,RowSet<Row>>build().asMap();
             this.poolOpen = true;
 
         }

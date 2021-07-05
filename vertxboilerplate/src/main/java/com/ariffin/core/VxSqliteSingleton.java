@@ -47,18 +47,18 @@ public class VxSqliteSingleton {
     }
 
     public JDBCPool getPool() {
-        if (this.sqliteDb.poolOpen)
-            return this.sqliteDb.pool;
+        if (VxSqliteSingleton.sqliteDb.poolOpen)
+            return VxSqliteSingleton.sqliteDb.pool;
         else
             return null;
     }
 
     public void close() {
-        this.sqliteDb.pool.close();
-        this.sqliteDb.poolOpen = false;
+        VxSqliteSingleton.sqliteDb.pool.close();
+        VxSqliteSingleton.sqliteDb.poolOpen = false;
     }
 
     public Future<RowSet<Row>> query(String sql) {
-        return this.sqliteDb.query(sql);
+        return VxSqliteSingleton.sqliteDb.query(sql);
     }
 }
