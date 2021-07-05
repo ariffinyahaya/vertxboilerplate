@@ -1,18 +1,3 @@
-/*
- * Copyright 2020 ariffin yahaya (ariffin.com).
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.ariffin.core;
 
 import io.vertx.core.Future;
@@ -23,11 +8,14 @@ import io.vertx.jdbcclient.JDBCPool;
 import io.vertx.sqlclient.PoolOptions;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
+import org.apache.commons.collections4.map.LRUMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
 
 import static java.lang.System.exit;
 
@@ -39,6 +27,7 @@ public class VxSqlite {
     boolean poolOpen = false;
     String dbName = "none";
     JDBCPool pool = null;
+    protected static Map<String,RowSet<Row>> cache = null;
 
     public VxSqlite(Vertx vertx, String sqliteDbName, int poolSize)  {
         LOGGER = LogManager.getLogger(this.getClass().getName());
@@ -78,7 +67,7 @@ public class VxSqlite {
                     new PoolOptions()
                             .setMaxSize(poolSize)
             );
-
+            cache = Collections.synchronizedMap(new LRUMap(4096));
             this.poolOpen = true;
 
         }
@@ -93,25 +82,33 @@ public class VxSqlite {
 
     public void close() {
         this.pool.close();
+        cache = null;
         this.poolOpen = false;
     }
 
     public Future<RowSet<Row>> query(String sql) {
+
         Promise<RowSet<Row>> retPromise = Promise.promise();
 
         if (this.poolOpen) {
-            this.pool
-                    .query(sql)
-                    .execute()
-                    .onFailure(e -> {
-                        // handle the failure
-                        LOGGER.error("Failure: " + e.getCause().getMessage() + " on db : " + this.dbName + " from sql: " + sql);
-                        retPromise.fail(e.getCause());
-                    })
-                    .onSuccess(rows -> {
-                        LOGGER.info("Success: Got " + rows.size() + " rows " + rows.toString() + " on db : " + this.dbName + " from sql: " + sql);
-                        retPromise.complete(rows);
-                    });
+            if (cache.containsKey(sql)) {
+                LOGGER.info("Cache Hit on db : " + this.dbName + " from sql: " + sql);
+                retPromise.complete(cache.get(sql));
+            } else {
+                this.pool
+                        .query(sql)
+                        .execute()
+                        .onFailure(e -> {
+                            // handle the failure
+                            LOGGER.error("Failure: " + e.getCause().getMessage() + " on db : " + this.dbName + " from sql: " + sql);
+                            retPromise.fail(e.getCause());
+                        })
+                        .onSuccess(rows -> {
+                            LOGGER.info("Success: Got " + rows.size() + " rows " + rows.toString() + " on db : " + this.dbName + " from sql: " + sql);
+                            cache.put(sql,rows);
+                            retPromise.complete(rows);
+                        });
+            }
         } else {
             String e = "Failure: sqlite db NOT open on db : " + this.dbName + " from sql: " + sql;
             LOGGER.error(e);
