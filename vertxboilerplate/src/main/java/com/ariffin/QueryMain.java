@@ -58,7 +58,7 @@ public class QueryMain extends VxMain {
         eventBus = vertx.eventBus();
 
         int processorCounts = (Runtime.getRuntime().availableProcessors());
-        Context vertxEventLoopContext = vertx.getOrCreateContext();
+//        Context vertxEventLoopContext = vertx.getOrCreateContext();
 
         VerticleFactory verticleFactory = springApplicationContext.getBean(VxSpringVerticleFactory.class);
 
